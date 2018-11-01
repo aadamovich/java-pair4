@@ -6,7 +6,7 @@ public class Account {
     private long accountnr;
     private double balance;
 
-    public Account(String accountname, long accountnr, long balance) {
+    public Account(String accountname, long accountnr, double balance) {
         this.accountname = accountname;
         this.accountnr = accountnr;
         this.balance = balance;

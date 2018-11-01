@@ -14,15 +14,7 @@ import java.util.stream.Collectors;
 
 public class Bank {
 
-//    public static List<Account> accounts = Arrays.asList(
-//            new Account("Meelis Tolk", 111111, 10),
-//            new Account("Siim Kallson", 222222, 100),
-//            new Account("Donald Trump", 999999, 10000000)
-//    );
-
-
-
-}
+    public static List<Account> accounts;
 
 
     public static void main(String[] args) throws IOException {
@@ -55,6 +47,8 @@ public class Bank {
     public static void transaction(TransactionType transactionType, long accountnr, double amount) throws IOException {
 
         List<Account> accounts = Files.lines(Paths.get("accounts.csv"))
+                .map((String line) -> line.split(";"))
+                .map((String[] fields) -> new Account(fields[0], Long.valueOf(fields[1]), Long.valueOf(fields[2])))
                 .collect(Collectors.toList());
 
         Account a = accounts
