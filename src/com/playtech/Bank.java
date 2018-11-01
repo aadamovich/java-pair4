@@ -28,7 +28,10 @@ public class Bank {
         // transactiontype 1 = depo
         // transactiontype 2 = withdraw
 
-
+        accounts = Files.lines(Paths.get("accounts.csv"))
+                .map((String line) -> line.split(";"))
+                .map((String[] fields) -> new Account(fields[1], Long.valueOf(fields[0]), Double.valueOf(fields[2])))
+                .collect(Collectors.toList());
 
 
         Scanner userInput = new Scanner(System.in);
@@ -45,11 +48,6 @@ public class Bank {
     }
 
     public static void transaction(TransactionType transactionType, long accountnr, double amount) throws IOException {
-
-        List<Account> accounts = Files.lines(Paths.get("accounts.csv"))
-                .map((String line) -> line.split(";"))
-                .map((String[] fields) -> new Account(fields[0], Long.valueOf(fields[1]), Long.valueOf(fields[2])))
-                .collect(Collectors.toList());
 
         Account a = accounts
                 .stream()
@@ -77,9 +75,14 @@ public class Bank {
     }
 
     public static void saveAccounts() throws IOException {
+
+        accounts.stream().map(a -> a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance())
+                .forEach(System.out::println);
+
         Files.write(Paths.get("accounts.csv"),
                 accounts.stream().map(a -> a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance())
                         .collect(Collectors.toList()));
+
     }
 
 
