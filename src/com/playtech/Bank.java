@@ -7,10 +7,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.playtech.Bank.TransactionType.*;
+
 public class Bank {
 
-    public static List<Account> accounts;
-
+    private static List<Account> accounts;
 
     public static void main(String[] args) throws IOException {
 
@@ -33,9 +34,9 @@ public class Bank {
         System.out.println("Enter account number:");
         long accountNumber = Long.valueOf(userInput.next());
         System.out.println("Enter transaction type (DEPOSIT, WITHDRAWAL, TRANSFER):");
-        TransactionType transactiontype = TransactionType.valueOf(userInput.next());
+        TransactionType transactiontype = valueOf(userInput.next());
         long targetAccountNumber = 0;
-        if(transactiontype.equals(TransactionType.TRANSFER)){
+        if(transactiontype.equals(TRANSFER)){
             System.out.println("Enter transfer target account number:");
             targetAccountNumber = Long.valueOf(userInput.next());
         }
@@ -51,53 +52,40 @@ public class Bank {
 
     }
 
-    public static void transaction(TransactionType transactionType, long accountnr, double amount, long targetAccount) throws IOException {
+    private static void transaction(TransactionType transactionType, long accountNr, double amount, long targetAccount) throws IOException {
+
+        switch (transactionType) {
+
+            case TRANSFER:
+                updateBalance(WITHDRAWAL, accountNr, amount);
+                updateBalance(DEPOSIT, targetAccount, amount);
+                break;
+
+            default:
+                updateBalance(transactionType, accountNr, amount);
+                break;
+        }
+    }
+
+    private static void updateBalance(TransactionType transactionType, long accountnr, double amount) throws IOException {
+        Account a = accounts
+                .stream()
+                .filter(acc -> acc.getAccountnr() == accountnr)
+                .findFirst()
+                .get();
+        System.out.println(transactionType+" coming up in amount of " + amount);
 
         switch (transactionType) {
 
             case DEPOSIT:
-                doDeposit(transactionType, accountnr, amount);
+                a.setBalance(a.getBalance() + amount);
                 break;
 
             case WITHDRAWAL:
-                doWithdraw(transactionType, accountnr, amount);
+                a.setBalance(a.getBalance() - amount);
                 break;
-
-            case TRANSFER:
-                doWithdraw(transactionType.WITHDRAWAL, accountnr, amount);
-                doDeposit(transactionType.DEPOSIT, targetAccount, amount);
-                break;
-
-            default:
-                System.out.println("Error");
-                break;
-
         }
 
-
-    }
-
-    private static void doWithdraw(TransactionType transactionType, long accountnr, double amount) throws IOException {
-        Account a = accounts
-                .stream()
-                .filter(acc -> acc.getAccountnr() == accountnr)
-                .findFirst()
-                .get();
-        System.out.println("Withdraw coming up in amount of " + amount);
-        a.setBalance(a.getBalance() - amount);
-        saveAccounts();
-        System.out.println("Account summary:  " + a);
-        addTransaction(transactionType, accountnr, amount);
-    }
-
-    private static void doDeposit(TransactionType transactionType, long accountnr, double amount) throws IOException {
-        Account a = accounts
-                .stream()
-                .filter(acc -> acc.getAccountnr() == accountnr)
-                .findFirst()
-                .get();
-        System.out.println("Deposit coming up in amount of " + amount);
-        a.setBalance(a.getBalance() + amount);
         saveAccounts();
         System.out.println("Account summary:  " + a);
         addTransaction(transactionType, accountnr, amount);
@@ -107,7 +95,7 @@ public class Bank {
         Files.write(Paths.get("transactions.csv"), Collections.singleton(transactionType + ";" +accountnr + ";"+amount), StandardOpenOption.APPEND);
     }
 
-    public static void saveAccounts() throws IOException {
+    private static void saveAccounts() throws IOException {
 
         Files.write(Paths.get("accounts.csv"),
                 accounts.stream().map(a -> a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance())
@@ -115,7 +103,7 @@ public class Bank {
 
     }
 
-    public static enum TransactionType {
-        DEPOSIT, WITHDRAWAL,TRANSFER;
+    public enum TransactionType {
+        DEPOSIT, WITHDRAWAL,TRANSFER
     }
 }
