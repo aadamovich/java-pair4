@@ -2,108 +2,143 @@ package com.playtech;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.playtech.Bank.TransactionType.*;
+import static java.nio.file.Files.lines;
+import static java.nio.file.Files.write;
+import static java.nio.file.Paths.get;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toList;
 
 public class Bank {
 
-    private static List<Account> accounts;
+  private static List<Account> accounts;
 
-    public static void main(String[] args) throws IOException {
+  private static TransactionType transactiontype = WITHDRAWAL;
 
-//        List<Account> accounts = Arrays.asList(
-//            new Account ("Meelis Tolk", 111111, 10),
-//            new Account ("Siim Kallson", 222222, 100),
-//            new Account ("Donald Trump", 999999, 10000000)
-//        );
+  public static void main(String[] args) throws IOException {
 
-        // transactiontype 1 = depo
-        // transactiontype 2 = withdraw
+    accounts = lines(get("accounts.csv"))
+        .map(line -> line.split(";"))
+        .map(Bank::convertAccount)
+        .collect(toList());
 
-        accounts = Files.lines(Paths.get("accounts.csv"))
-                .map((String line) -> line.split(";"))
-                .map((String[] fields) -> new Account(fields[1], Long.valueOf(fields[0]), Double.valueOf(fields[2])))
-                .collect(Collectors.toList());
+    transaction(
+        getAccountNumber(),
+        getTransactionType(),
+        getTargetAccountNumber(),
+        getAmount()
+    );
 
+  }
 
-        Scanner userInput = new Scanner(System.in);
-        System.out.println("Enter account number:");
-        long accountNumber = Long.valueOf(userInput.next());
-        System.out.println("Enter transaction type (DEPOSIT, WITHDRAWAL, TRANSFER):");
-        TransactionType transactiontype = valueOf(userInput.next());
-        long targetAccountNumber = 0;
-        if(transactiontype.equals(TRANSFER)){
-            System.out.println("Enter transfer target account number:");
-            targetAccountNumber = Long.valueOf(userInput.next());
-        }
+  private static Scanner userInput() {
+    return new Scanner(System.in);
+  }
 
-        System.out.println("Enter amount:");
-        double amount = Double.valueOf(userInput.next());
+  private static double getAmount() {
+    System.out.println("Enter amount:");
+    return Double.valueOf(userInput().next());
+  }
 
-        transaction(transactiontype, accountNumber, amount, targetAccountNumber);
+  private static long getTargetAccountNumber() {
+    long targetAccountNumber = 0;
+    if (transactiontype.equals(TRANSFER)) {
+      System.out.println("Enter transfer target account number:");
+      targetAccountNumber = Long.valueOf(userInput().next());
+    }
+    return targetAccountNumber;
+  }
 
-//        accounts.stream().map(a -> a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance())
-//                .forEach(System.out::println);
+  private static TransactionType getTransactionType() {
+    System.out.println("Enter transaction type (DEPOSIT, WITHDRAWAL, TRANSFER):");
+    transactiontype = valueOf(userInput().next());
+    return transactiontype;
+  }
 
+  private static long getAccountNumber() {
+    System.out.println("Enter account number:");
+    return Long.valueOf(userInput().next());
+  }
+
+  private static Account convertAccount(String[] fields) {
+    return new Account(
+        fields[1],
+        Long.valueOf(fields[0]),
+        Double.valueOf(fields[2])
+    );
+  }
+
+  private static void transaction(long accountNr, TransactionType transactionType, long targetAccount, double amount) throws IOException {
+
+    switch (transactionType) {
+
+      case TRANSFER:
+        updateBalance(WITHDRAWAL, accountNr, amount);
+        updateBalance(DEPOSIT, targetAccount, amount);
+        break;
+
+      default:
+        updateBalance(transactionType, accountNr, amount);
 
     }
 
-    private static void transaction(TransactionType transactionType, long accountNr, double amount, long targetAccount) throws IOException {
+  }
 
-        switch (transactionType) {
+  private static void updateBalance(TransactionType transactionType, long accountnr, double amount) throws IOException {
 
-            case TRANSFER:
-                updateBalance(WITHDRAWAL, accountNr, amount);
-                updateBalance(DEPOSIT, targetAccount, amount);
-                break;
+    Optional<Account> a = accounts
+        .stream()
+        .filter(acc -> acc.getAccountnr() == accountnr)
+        .findFirst();
 
-            default:
-                updateBalance(transactionType, accountNr, amount);
-                break;
-        }
+    if (!a.isPresent()) {
+      throw new RuntimeException("Account not found!");
     }
 
-    private static void updateBalance(TransactionType transactionType, long accountnr, double amount) throws IOException {
-        Account a = accounts
-                .stream()
-                .filter(acc -> acc.getAccountnr() == accountnr)
-                .findFirst()
-                .get();
-        System.out.println(transactionType+" coming up in amount of " + amount);
+    System.out.println(transactionType + " coming up in amount of " + amount);
 
-        switch (transactionType) {
+    Account account = a.get();
+    switch (transactionType) {
 
-            case DEPOSIT:
-                a.setBalance(a.getBalance() + amount);
-                break;
+      case DEPOSIT:
+        account.setBalance(account.getBalance() + amount);
+        break;
 
-            case WITHDRAWAL:
-                a.setBalance(a.getBalance() - amount);
-                break;
-        }
-
-        saveAccounts();
-        System.out.println("Account summary:  " + a);
-        addTransaction(transactionType, accountnr, amount);
+      case WITHDRAWAL:
+        account.setBalance(account.getBalance() - amount);
+        break;
     }
 
-    private static void addTransaction(TransactionType transactionType, long accountnr, double amount) throws IOException {
-        Files.write(Paths.get("transactions.csv"), Collections.singleton(transactionType + ";" +accountnr + ";"+amount), StandardOpenOption.APPEND);
-    }
+    saveAccounts();
+    System.out.println("Account summary:  " + a);
+    addTransaction(transactionType, accountnr, amount);
 
-    private static void saveAccounts() throws IOException {
+  }
 
-        Files.write(Paths.get("accounts.csv"),
-                accounts.stream().map(a -> a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance())
-                        .collect(Collectors.toList()));
+  private static void addTransaction(TransactionType transactionType, long accountnr, double amount) throws IOException {
+    write(get("transactions.csv"),
+        singleton(transactionType + ";" + accountnr + ";" + amount),
+        APPEND);
+  }
 
-    }
+  private static void saveAccounts() throws IOException {
+    write(get("accounts.csv"),
+        accounts
+            .stream()
+            .map(Bank::convertAccountToCsvRecord)
+            .collect(toList()));
+  }
 
-    public enum TransactionType {
-        DEPOSIT, WITHDRAWAL,TRANSFER
-    }
+  private static String convertAccountToCsvRecord(Account a) {
+    return a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance();
+  }
+
+  public enum TransactionType {
+    DEPOSIT, WITHDRAWAL, TRANSFER
+  }
+
 }
