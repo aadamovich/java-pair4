@@ -45,8 +45,8 @@ public class Bank {
 
         transaction(transactiontype, accountNumber, amount, targetAccountNumber);
 
-        accounts.stream().map(a -> a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance())
-                .forEach(System.out::println);
+//        accounts.stream().map(a -> a.getAccountnr() + ";" + a.getAccountname() + ";" + a.getBalance())
+//                .forEach(System.out::println);
 
 
     }
@@ -69,11 +69,10 @@ public class Bank {
                 break;
 
             default:
-                System.out.println("You are stupid error");
+                System.out.println("Error");
                 break;
 
         }
-
 
 
     }
@@ -87,6 +86,7 @@ public class Bank {
         System.out.println("Withdraw coming up in amount of " + amount);
         a.setBalance(a.getBalance() - amount);
         saveAccounts();
+        System.out.println("Account summary:  " + a);
         addTransaction(transactionType, accountnr, amount);
     }
 
@@ -99,6 +99,7 @@ public class Bank {
         System.out.println("Deposit coming up in amount of " + amount);
         a.setBalance(a.getBalance() + amount);
         saveAccounts();
+        System.out.println("Account summary:  " + a);
         addTransaction(transactionType, accountnr, amount);
     }
 
